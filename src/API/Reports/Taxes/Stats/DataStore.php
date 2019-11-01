@@ -69,34 +69,6 @@ class DataStore extends ReportsDataStore implements DataStoreInterface {
 	}
 
 	/**
-	 * Updates the database query with parameters used for Taxes report: categories and order status.
-	 *
-	 * @param array $query_args Query arguments supplied by the user.
-	 * @return array            Array of parameters used for SQL query.
-	 */
-	protected function get_sql_query_params( $query_args ) {
-		global $wpdb;
-
-		$order_tax_lookup_table = $wpdb->prefix . self::TABLE_NAME;
-
-		$sql_query_params = $this->get_time_period_sql_params( $query_args, $order_tax_lookup_table );
-		$sql_query_params = array_merge( $sql_query_params, $this->get_limit_sql_params( $query_args ) );
-		$sql_query_params = array_merge( $sql_query_params, $this->get_order_by_sql_params( $query_args ) );
-
-		if ( isset( $query_args['taxes'] ) && ! empty( $query_args['taxes'] ) ) {
-			$allowed_taxes                     = implode( ',', $query_args['taxes'] );
-			$sql_query_params['where_clause'] .= " AND {$order_tax_lookup_table}.tax_rate_id IN ({$allowed_taxes})";
-		}
-
-		$order_status_filter = $this->get_status_subquery( $query_args );
-		if ( $order_status_filter ) {
-			$sql_query_params['where_clause'] .= " AND ( {$order_status_filter} )";
-		}
-
-		return $sql_query_params;
-	}
-
-	/**
 	 * Updates the database query with parameters used for Taxes Stats report
 	 *
 	 * @param array $query_args       Query arguments supplied by the user.
@@ -114,6 +86,11 @@ class DataStore extends ReportsDataStore implements DataStoreInterface {
 		if ( isset( $query_args['taxes'] ) && ! empty( $query_args['taxes'] ) ) {
 			$allowed_taxes       = implode( ',', $query_args['taxes'] );
 			$taxes_where_clause .= " AND {$order_tax_lookup_table}.tax_rate_id IN ({$allowed_taxes})";
+		}
+
+		$order_status_filter = $this->get_status_subquery( $query_args );
+		if ( $order_status_filter ) {
+			$taxes_where_clause .= " AND ( {$order_status_filter} )";
 		}
 
 		$totals_params                  = array_merge( $totals_params, $this->get_time_period_sql_params( $query_args, $order_tax_lookup_table ) );
