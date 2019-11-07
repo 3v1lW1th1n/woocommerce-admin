@@ -77,10 +77,17 @@ fi
 status "Gathering PHP dependencies... 🐿️"
 composer install --no-dev
 
-# Run the build.
-status "Generating build... 👷‍♀️"
-npm run build
-npm run docs
+# Build the Core files.
+status "Generating a Core build... 👷‍♀️"
+WC_ADMIN_PHASE=core npm run build
+
+# Make a Github release.
+status "Starting a Github release... 👷‍♀️"
+./bin/github-deploy.sh
+
+# Build the plugin.
+status "Generating the plugin build... 👷‍♀️"
+WC_ADMIN_PHASE=plugin npm run build
 
 build_files=$(ls dist/*/*.{js,css})
 
