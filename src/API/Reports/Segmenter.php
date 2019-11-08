@@ -98,9 +98,13 @@ class Segmenter {
 			$segment_dimension = substr( strstr( $segment_dimension, '.' ), 1 );
 		}
 
+		$segment_labels = $this->get_segment_labels();
 		foreach ( $segments_db_result as $segment_data ) {
-			$segment_id     = $segment_data[ $segment_dimension ];
-			$segment_labels = $this->get_segment_labels();
+			$segment_id = $segment_data[ $segment_dimension ];
+			if ( ! isset( $segment_labels[ $segment_id ] ) ) {
+				continue;
+			}
+
 			unset( $segment_data[ $segment_dimension ] );
 			$segment_datum                 = array(
 				'segment_id'    => $segment_id,
@@ -292,6 +296,11 @@ class Segmenter {
 		$segment_labels = $this->get_segment_labels();
 
 		foreach ( $segments_db_result as $segment_data ) {
+			$segment_id = $segment_data[ $segment_dimension ];
+			if ( ! isset( $segment_labels[ $segment_id ] ) ) {
+				continue;
+			}
+
 			$time_interval = $segment_data['time_interval'];
 			if ( ! isset( $aggregated_segment_result[ $time_interval ] ) ) {
 				$aggregated_segment_result[ $time_interval ]             = array();
@@ -299,7 +308,6 @@ class Segmenter {
 			}
 			unset( $segment_data['time_interval'] );
 			unset( $segment_data['datetime_anchor'] );
-			$segment_id = $segment_data[ $segment_dimension ];
 			unset( $segment_data[ $segment_dimension ] );
 			$segment_datum = array(
 				'segment_label' => $segment_labels[ $segment_id ],
@@ -383,7 +391,7 @@ class Segmenter {
 			// This is to catch simple products with prior sales converted into variable products.
 			// See: https://github.com/woocommerce/woocommerce-admin/issues/2719.
 			if ( empty( $this->query_args['variations'] ) ) {
-				$parent_object = wc_get_product( $this->query_args['product_includes'][0] );
+				$parent_object     = wc_get_product( $this->query_args['product_includes'][0] );
 				$segments[]        = 0;
 				$segment_labels[0] = $parent_object->get_name();
 			}
@@ -407,7 +415,8 @@ class Segmenter {
 			if ( isset( $this->query_args['coupons'] ) ) {
 				$args['include'] = $this->query_args['coupons'];
 			}
-			$coupons        = CouponsDataStore::get_coupons( $args );
+			$coupons_store  = new CouponsDataStore();
+			$coupons        = $coupons_store->get_coupons( $args );
 			$segments       = wp_list_pluck( $coupons, 'ID' );
 			$segment_labels = wp_list_pluck( $coupons, 'post_title', 'ID' );
 			$segment_labels = array_map( 'wc_format_coupon_code', $segment_labels );

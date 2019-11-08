@@ -3,12 +3,13 @@
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
 import { Button, CheckboxControl } from 'newspack-components';
 import { Component, Fragment } from '@wordpress/element';
 import { compose } from '@wordpress/compose';
 import { withDispatch } from '@wordpress/data';
 import { recordEvent } from 'lib/tracks';
-import { without } from 'lodash';
+import { without, get } from 'lodash';
 
 /**
  * Internal depdencies
@@ -25,24 +26,30 @@ import UsageModal from './usage-modal';
 import { getSetting } from '@woocommerce/wc-admin-settings';
 
 class StoreDetails extends Component {
-	constructor() {
+	constructor( props ) {
 		super( ...arguments );
+		const settings = get( props, 'settings', false );
+		const profileItems = get( props, 'profileItems', {} );
 
 		this.state = {
 			showUsageModal: false,
 		};
 
 		this.initialValues = {
-			addressLine1: '',
-			addressLine2: '',
-			city: '',
-			countryState: '',
-			postCode: '',
-			isClient: false,
+			addressLine1: settings.woocommerce_store_address || '',
+			addressLine2: settings.woocommerce_store_address_2 || '',
+			city: settings.woocommerce_store_city || '',
+			countryState: settings.woocommerce_default_country || '',
+			postCode: settings.woocommerce_store_postcode || '',
+			isClient: profileItems.setup_client || false,
 		};
 
 		this.onContinue = this.onContinue.bind( this );
 		this.onSubmit = this.onSubmit.bind( this );
+	}
+
+	componentWillUnmount() {
+		apiFetch( { path: '/wc-admin/v1/onboarding/tasks/create_store_pages', method: 'POST' } );
 	}
 
 	deriveCurrencySettings( countryState ) {
@@ -121,6 +128,7 @@ class StoreDetails extends Component {
 
 	render() {
 		const { showUsageModal } = this.state;
+
 		return (
 			<Fragment>
 				<H className="woocommerce-profile-wizard__header-title">
@@ -175,11 +183,11 @@ export default compose(
 			getProfileItems,
 		} = select( 'wc-api' );
 
-		const profileItems = getProfileItems();
-
 		const settings = getSettings( 'general' );
 		const isSettingsError = Boolean( getSettingsError( 'general' ) );
 		const isSettingsRequesting = isGetSettingsRequesting( 'general' );
+
+		const profileItems = getProfileItems();
 		const isProfileItemsError = Boolean( getProfileItemsError() );
 
 		return {

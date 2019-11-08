@@ -49,6 +49,11 @@ class Onboarding {
 	 * Hook into WooCommerce.
 	 */
 	public function __construct() {
+
+		if ( ! Loader::is_onboarding_enabled() ) {
+			return;
+		}
+
 		// Include WC Admin Onboarding classes.
 		if ( self::should_show_tasks() ) {
 			OnboardingTasks::get_instance();
@@ -65,6 +70,7 @@ class Onboarding {
 		add_filter( 'woocommerce_shared_settings', array( $this, 'component_settings' ), 20 );
 		add_filter( 'woocommerce_component_settings_preload_endpoints', array( $this, 'add_preload_endpoints' ) );
 		add_filter( 'woocommerce_admin_preload_options', array( $this, 'preload_options' ) );
+		add_filter( 'woocommerce_admin_preload_settings', array( $this, 'preload_settings' ) );
 		add_action( 'woocommerce_theme_installed', array( $this, 'delete_themes_transient' ) );
 		add_action( 'after_switch_theme', array( $this, 'delete_themes_transient' ) );
 		add_action( 'current_screen', array( $this, 'finish_paypal_connect' ) );
@@ -110,12 +116,12 @@ class Onboarding {
 		return apply_filters(
 			'woocommerce_admin_onboarding_industries',
 			array(
-				'fashion-apparel-accessories' => __( 'Fashion, apparel, & accessories', 'woocommerce-admin' ),
-				'health-beauty'               => __( 'Health & beauty', 'woocommerce-admin' ),
-				'art-music-photography'       => __( 'Art, music, & photography', 'woocommerce-admin' ),
-				'electronics-computers'       => __( 'Electronics & computers', 'woocommerce-admin' ),
-				'food-drink'                  => __( 'Food & drink', 'woocommerce-admin' ),
-				'home-furniture-garden'       => __( 'Home, furniture, & garden', 'woocommerce-admin' ),
+				'fashion-apparel-accessories' => __( 'Fashion, apparel, and accessories', 'woocommerce-admin' ),
+				'health-beauty'               => __( 'Health and beauty', 'woocommerce-admin' ),
+				'art-music-photography'       => __( 'Art, music, and photography', 'woocommerce-admin' ),
+				'electronics-computers'       => __( 'Electronics and computers', 'woocommerce-admin' ),
+				'food-drink'                  => __( 'Food and drink', 'woocommerce-admin' ),
+				'home-furniture-garden'       => __( 'Home, furniture, and garden', 'woocommerce-admin' ),
 				'other'                       => __( 'Other', 'woocommerce-admin' ),
 			)
 		);
@@ -172,12 +178,15 @@ class Onboarding {
 
 			if ( ! is_wp_error( $theme_data ) ) {
 				$theme_data = json_decode( $theme_data['body'] );
-				usort( $theme_data->products, function ($product_1, $product_2) {
-					if ( 'Storefront' === $product_1->slug ) {
-						return -1;
+				usort(
+					$theme_data->products,
+					function ( $product_1, $product_2 ) {
+						if ( 'Storefront' === $product_1->slug ) {
+							return -1;
+						}
+						return $product_1->id < $product_2->id ? 1 : -1;
 					}
-					return $product_1->id < $product_2->id ? 1 : -1;
-				} );
+				);
 
 				foreach ( $theme_data->products as $theme ) {
 					$slug                                       = sanitize_title( $theme->slug );
@@ -347,6 +356,7 @@ class Onboarding {
 			$settings['onboarding']['activePlugins']            = self::get_active_plugins();
 			$settings['onboarding']['stripeSupportedCountries'] = self::get_stripe_supported_countries();
 			$settings['onboarding']['euCountries']              = WC()->countries->get_european_union_countries();
+			$settings['onboarding']['connectNonce']             = wp_create_nonce( 'connect' );
 		}
 
 		return $settings;
@@ -377,6 +387,22 @@ class Onboarding {
 	}
 
 	/**
+	 * Preload WC setting options to prime state of the application.
+	 *
+	 * @param array $options Array of options to preload.
+	 * @return array
+	 */
+	public function preload_settings( $options ) {
+		if ( ! self::should_show_profiler() ) {
+			return $options;
+		}
+
+		$options[] = 'general';
+
+		return $options;
+	}
+
+	/**
 	 * Preload data from API endpoints.
 	 *
 	 * @param array $endpoints Array of preloaded endpoints.
@@ -393,14 +419,42 @@ class Onboarding {
 	/**
 	 * Returns a list of Stripe supported countries. This method can be removed once merged to core.
 	 *
-	 * @param array $endpoints Array of preloaded endpoints.
 	 * @return array
 	 */
 	private static function get_stripe_supported_countries() {
 		// https://stripe.com/global.
 		return array(
-			'AU', 'AT', 'BE', 'CA', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HK', 'IE', 'IT', 'JP', 'LV', 'LT', 'LU', 'MY', 'NL', 'NZ', 'NO',
-			'PL', 'PT', 'SG', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US',
+			'AU',
+			'AT',
+			'BE',
+			'CA',
+			'DK',
+			'EE',
+			'FI',
+			'FR',
+			'DE',
+			'GR',
+			'HK',
+			'IE',
+			'IT',
+			'JP',
+			'LV',
+			'LT',
+			'LU',
+			'MY',
+			'NL',
+			'NZ',
+			'NO',
+			'PL',
+			'PT',
+			'SG',
+			'SK',
+			'SI',
+			'ES',
+			'SE',
+			'CH',
+			'GB',
+			'US',
 		);
 	}
 
