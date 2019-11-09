@@ -625,7 +625,7 @@ class Segmenter {
 	 */
 	public function get_totals_segments( $query_params, $table_name ) {
 		$segments = $this->get_segments( 'totals', $query_params, $table_name );
-
+	// TODO: try moving the fill missing back here!
 		return $segments;
 	}
 
@@ -638,7 +638,7 @@ class Segmenter {
 	 */
 	public function add_intervals_segments( &$data, $intervals_query, $table_name ) {
 		$intervals_segments = $this->get_segments( 'intervals', $intervals_query, $table_name );
-
+		// TODO: try moving the fill missing back here!
 		$this->assign_segments_to_intervals( $data->intervals, $intervals_segments );
 	}
 }
