@@ -42,6 +42,17 @@ $write .= "\t\t);\n";
 $write .= "\t}\n";
 $write .= "}\n";
 
+$is_core = 'core' === $phase ? 'true' : 'false';
+
+$write .= "\n";
+$write .= "if ( ! function_exists( 'wc_admin_is_core' ) ) {\n";
+$write .= "\tfunction wc_admin_is_core() {\n";
+$write .= "\t\treturn ";
+$write .= $is_core;
+$write .= ";";
+$write .= "\n\t}\n";
+$write .= "}\n";
+
 $config_file = fopen( 'includes/feature-config.php', 'w' );
 
 fwrite( $config_file, $write );
